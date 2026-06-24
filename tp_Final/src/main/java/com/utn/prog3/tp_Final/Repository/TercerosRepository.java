@@ -7,5 +7,5 @@ import com.utn.prog3.tp_Final.Model.Terceros;
 
 @Repository
 public interface TercerosRepository extends JpaRepository<Terceros, Long> {
-
+	
 }

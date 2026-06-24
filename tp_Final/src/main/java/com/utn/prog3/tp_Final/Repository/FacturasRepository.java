@@ -7,5 +7,5 @@ import com.utn.prog3.tp_Final.Model.Facturas;
 
 @Repository
 public interface FacturasRepository extends JpaRepository<Facturas, Long> {
-
+	
 }
