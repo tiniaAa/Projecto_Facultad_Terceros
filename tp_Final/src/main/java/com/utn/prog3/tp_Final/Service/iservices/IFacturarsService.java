@@ -11,5 +11,6 @@ public interface IFacturarsService {
 	FacturasDTO crear(FacturasDTO dto);
 	
 	List<FacturasDTO> listarTodas();
+	FacturasDTO actualizar(Long id, FacturasDTO dto);
 	
 }

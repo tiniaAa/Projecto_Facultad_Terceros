@@ -20,7 +20,7 @@ import com.utn.prog3.tp_Final.Service.iservices.ITercerosService;
 
 
 @RestController
-@RequestMapping("/api/Terceros")
+@RequestMapping("/api/terceros")
 public class TercerosController {
 	
 	@Autowired

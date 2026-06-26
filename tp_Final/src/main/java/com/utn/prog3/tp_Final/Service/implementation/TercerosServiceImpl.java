@@ -52,9 +52,9 @@ public class TercerosServiceImpl implements ITercerosService {
 	@Override
 	public List<TercerosDTO> listarTerceros() {
 		List<Terceros> terceros = this.tercerosRepository.findAll();
-		List<TercerosDTO> listaDeRespuesta= new ArrayList<>();
+		List<TercerosDTO> listaDeRespuesta = new ArrayList<>();
 		
-		for(Terceros entidad: terceros) {
+		for(Terceros entidad : terceros) {
 			TercerosDTO dto = new TercerosDTO();
 			dto.setCuilt(entidad.getCuilt());
 			dto.setDireccion(entidad.getDireccion());
@@ -67,6 +67,8 @@ public class TercerosServiceImpl implements ITercerosService {
 			dto.setTipo_saldo(entidad.getTipo_saldo());
 			dto.setId(entidad.getId());
 			
+			// ¡LA LÍNEA MÁGICA QUE FALTABA!
+			listaDeRespuesta.add(dto);
 		}
 		return listaDeRespuesta;
 	}
@@ -89,7 +91,7 @@ public class TercerosServiceImpl implements ITercerosService {
 	    entidadExistente.setSaldo_apertura(dto.getSaldo_apertura());
 	    entidadExistente.setSitiva(dto.getSitiva());
 	    entidadExistente.setTelefonos(dto.getTelefonos());
-	    entidadExistente.setTipo_saldo(dto.getTelefonos());
+	    entidadExistente.setTipo_saldo(dto.getTipo_saldo());
 	    entidadExistente.setId(dto.getId());
 	    
 	    this.tercerosRepository.save(entidadExistente);

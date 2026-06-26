@@ -1,10 +1,5 @@
 package com.utn.prog3.tp_Final.Dto;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 public class FacultadDTO {
 
 	private Long id;

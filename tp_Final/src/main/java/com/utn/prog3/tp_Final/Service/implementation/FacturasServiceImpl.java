@@ -17,6 +17,7 @@ import com.utn.prog3.tp_Final.Repository.FacturasRepository;
 import com.utn.prog3.tp_Final.Repository.TercerosRepository;
 import com.utn.prog3.tp_Final.Service.iservices.IFacturarsService;
 
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class FacturasServiceImpl implements IFacturarsService{
@@ -73,6 +74,7 @@ public class FacturasServiceImpl implements IFacturarsService{
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<FacturasDTO> listarTodas() {
 		List<Facturas> facturasBD = this.facturasRepository.findAll();
 		List<FacturasDTO> listaRespuesta = new ArrayList<>();
@@ -105,7 +107,59 @@ public class FacturasServiceImpl implements IFacturarsService{
 	}
 
 	
-	//public FacturasDTO actualizar(Long id, FacturasDTO dto) no se actualizan las facturas
+	@Override
+	@Transactional
+	public FacturasDTO actualizar(Long id, FacturasDTO dto) {
+		Optional<Facturas> resultado = this.facturasRepository.findById(id);
+		
+		if (resultado.isEmpty()) {
+			return null;
+		}
+		
+		Facturas facturaExistente = resultado.get();
+		
+		facturaExistente.setFecha_factura(dto.getFecha_factura());
+		facturaExistente.setNumero(dto.getNumero());
+		
+		if (dto.getTercero() != null) {
+			Optional<Terceros> tercero = this.tercerosRepository.findById(dto.getTercero().getId());
+			tercero.ifPresent(facturaExistente::setTercero);
+		}
+
+		List<Facturas_items> itemsActuales = facturaExistente.getItems();
+		List<Facturas_items> itemsProcesados = new ArrayList<>();
+		
+		for (Facturas_ItemsDTO itemDto : dto.getItems()) {
+			
+			if (itemDto.getId() == null || itemDto.getId() == 0) {
+				Facturas_items nuevoItem = new Facturas_items();
+				nuevoItem.setCantidad(itemDto.getCantidad());
+				nuevoItem.setMonto(itemDto.getMonto());
+				nuevoItem.setDetalle(itemDto.getDetalle());
+				nuevoItem.setFactura(facturaExistente); 
+				
+				itemsProcesados.add(nuevoItem);
+			} else {
+				for (Facturas_items itemViejo : itemsActuales) {
+					if (itemViejo.getId().equals(itemDto.getId())) {
+						itemViejo.setCantidad(itemDto.getCantidad());
+						itemViejo.setMonto(itemDto.getMonto());
+						itemViejo.setDetalle(itemDto.getDetalle());
+						
+						itemsProcesados.add(itemViejo);
+						break;
+					}
+				}
+			}
+		}
+		
+		itemsActuales.clear();
+		itemsActuales.addAll(itemsProcesados);
+		
+		this.facturasRepository.save(facturaExistente);
+		
+		return dto;
+	}
 	
 	
 	
