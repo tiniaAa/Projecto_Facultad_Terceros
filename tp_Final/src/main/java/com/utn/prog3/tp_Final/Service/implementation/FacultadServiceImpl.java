@@ -30,8 +30,8 @@ public class FacultadServiceImpl implements IFacultadService {
         entidad.setDireccion(dto.getDireccion());
         entidad.setCuit(dto.getCuit());
         entidad.setSucursal(dto.getSucursal());
-        entidad.setTelefonos(dto.getTelefono()); 
-        entidad.setCorreo(dto.getEmail());
+        entidad.setTelefono(dto.getTelefono()); 
+        entidad.setEmail(dto.getEmail());
         entidad.setDefecto(false);
 		
         
@@ -43,8 +43,8 @@ public class FacultadServiceImpl implements IFacultadService {
         respuestaDTO.setDireccion(entidadGuardada.getDireccion());
         respuestaDTO.setCuit(entidadGuardada.getCuit());
         respuestaDTO.setSucursal(entidadGuardada.getSucursal());
-        respuestaDTO.setTelefono(entidadGuardada.getTelefonos());
-        respuestaDTO.setEmail(entidadGuardada.getCorreo());
+        respuestaDTO.setTelefono(entidadGuardada.getTelefono());
+        respuestaDTO.setEmail(entidadGuardada.getEmail());
         
         
 		return respuestaDTO;
@@ -62,10 +62,10 @@ public class FacultadServiceImpl implements IFacultadService {
 			dto.setId(entidad.getId());
 		    dto.setCuit(entidad.getCuit());
 		    dto.setDireccion(entidad.getDireccion());
-		    dto.setEmail(entidad.getDireccion());
+		    dto.setEmail(entidad.getEmail());
 		    dto.setNombre(entidad.getNombre());
 		    dto.setSucursal(entidad.getSucursal());
-		    dto.setTelefono(entidad.getTelefonos());
+		    dto.setTelefono(entidad.getTelefono());
 		    
 		    listaDeRespuesta.add(dto);
         }
@@ -85,8 +85,8 @@ public class FacultadServiceImpl implements IFacultadService {
 	    entidadExistente.setDireccion(dto.getDireccion());
 	    entidadExistente.setCuit(dto.getCuit());
 	    entidadExistente.setSucursal(dto.getSucursal());
-	    entidadExistente.setTelefonos(dto.getTelefono());
-	    entidadExistente.setCorreo(dto.getEmail());
+	    entidadExistente.setTelefono(dto.getTelefono());
+	    entidadExistente.setEmail(dto.getEmail());
 
 	    this.facultadRepository.save(entidadExistente);
 

@@ -21,6 +21,7 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.icon.VaadinIcon;
+// IMPORTS AGREGADOS PARA LAS NOTIFICACIONES:
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -35,9 +36,9 @@ import com.vaadin.flow.router.Route;
 public class FacturasView extends VerticalLayout {
 
     private final IFacturarsService facturasService;
-    private final ITercerosService tercerosService; 
-    
+    private final ITercerosService tercerosService;
     private final Grid<FacturasDTO> grillaPrincipal = new Grid<>(FacturasDTO.class, false);
+    private final ComboBox<FacturasDTO> comboSelectorRapido = new ComboBox<>("Buscador Rápido");
 
     public FacturasView(IFacturarsService facturasService, ITercerosService tercerosService) {
         this.facturasService = facturasService;
@@ -51,148 +52,134 @@ public class FacturasView extends VerticalLayout {
         botonNueva.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         botonNueva.addClickListener(e -> abrirModalFactura(new FacturasDTO(), false));
 
+        // Combo para selección rápida
+        comboSelectorRapido.setWidth("300px");
+        comboSelectorRapido.setPlaceholder("Seleccione una factura...");
+        comboSelectorRapido.setItemLabelGenerator(f -> "Nº " + f.getNumero() + " - " + f.getTercero().getNombre());
+        comboSelectorRapido.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                abrirModalFactura(e.getValue(), true);
+                comboSelectorRapido.clear();
+            }
+        });
+
+        HorizontalLayout barraSuperior = new HorizontalLayout(botonNueva, comboSelectorRapido);
+        barraSuperior.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
+
         configurarGrillaPrincipal();
         actualizarGrillaPrincipal();
 
-        add(titulo, botonNueva, grillaPrincipal);
+        add(titulo, barraSuperior, grillaPrincipal);
     }
 
     private void configurarGrillaPrincipal() {
-        grillaPrincipal.addColumn(FacturasDTO::getId).setHeader("ID").setWidth("80px").setFlexGrow(0);
-        grillaPrincipal.addColumn(FacturasDTO::getNumero).setHeader("Número Factura");
-        grillaPrincipal.addColumn(factura -> factura.getTercero() != null ? factura.getTercero().getNombre() : "Sin Tercero").setHeader("Tercero / Cliente");
+        grillaPrincipal.addColumn(FacturasDTO::getNumero).setHeader("Número");
+        grillaPrincipal.addColumn(f -> f.getTercero().getNombre()).setHeader("Cliente");
         grillaPrincipal.addColumn(FacturasDTO::getFecha_factura).setHeader("Fecha");
 
+        // Botones de acción
         grillaPrincipal.addComponentColumn(factura -> {
-            Button btnVer = new Button(VaadinIcon.EYE.create());
-            btnVer.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-            btnVer.addClickListener(e -> abrirModalFactura(factura, true));
-            return btnVer;
-        }).setHeader("Ver Detalle").setAutoWidth(true).setFlexGrow(0);
+            Button btnEditar = new Button(VaadinIcon.EDIT.create());
+            btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            btnEditar.addClickListener(e -> abrirModalFactura(factura, false));
+
+            Button btnEliminar = new Button(VaadinIcon.TRASH.create());
+            btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+            btnEliminar.addClickListener(e -> {
+                facturasService.eliminar(factura.getId());
+                actualizarGrillaPrincipal();
+                
+                // --- NOTIFICACIÓN DE ELIMINACIÓN ---
+                Notification.show("Factura eliminada correctamente")
+                            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            });
+
+            return new HorizontalLayout(btnEditar, btnEliminar);
+        }).setHeader("Acciones").setAutoWidth(true).setFlexGrow(0);
+
+        // Doble clic para detalle
+        grillaPrincipal.addItemDoubleClickListener(e -> abrirModalFactura(e.getItem(), true));
     }
 
     private void actualizarGrillaPrincipal() {
-         grillaPrincipal.setItems(this.facturasService.listarTodas());
+        List<FacturasDTO> lista = this.facturasService.listarTodas();
+        grillaPrincipal.setItems(lista);
+        comboSelectorRapido.setItems(lista);
     }
 
     private void abrirModalFactura(FacturasDTO factura, boolean soloLectura) {
         Dialog modal = new Dialog();
-        modal.setHeaderTitle(soloLectura ? "Detalle de Factura" : "Emitir Nueva Factura");
-        modal.setWidth("900px"); 
+        modal.setWidth("900px");
+        modal.setHeaderTitle(soloLectura ? "Detalle de Factura" : "Emitir/Editar Factura");
 
+        // --- CABECERA ---
         IntegerField campoNumero = new IntegerField("Nº Factura");
         DatePicker campoFecha = new DatePicker("Fecha");
-        
-        ComboBox<TercerosDTO> comboTercero = new ComboBox<>("Cliente / Proveedor");
-        comboTercero.setItems(this.tercerosService.listarTerceros()); 
+        ComboBox<TercerosDTO> comboTercero = new ComboBox<>("Cliente");
+        comboTercero.setItems(tercerosService.listarTerceros());
         comboTercero.setItemLabelGenerator(TercerosDTO::getNombre);
 
-        Binder<FacturasDTO> binderCabecera = new Binder<>(FacturasDTO.class);
-        binderCabecera.forField(campoNumero).asRequired("Requerido").bind(FacturasDTO::getNumero, FacturasDTO::setNumero);
-        binderCabecera.forField(comboTercero).asRequired("Requerido").bind(FacturasDTO::getTercero, FacturasDTO::setTercero);
-        
-        
-        binderCabecera.forField(campoFecha)
-            .withConverter(
-                localDate -> localDate != null ? java.util.Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant()) : null,
-                date -> date != null ? date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate() : null
-            )
-            .asRequired("Requerido")
-            .bind(FacturasDTO::getFecha_factura, FacturasDTO::setFecha_factura);
+        Binder<FacturasDTO> binder = new Binder<>(FacturasDTO.class);
+        binder.forField(campoNumero).bind(FacturasDTO::getNumero, FacturasDTO::setNumero);
+        binder.forField(comboTercero).bind(FacturasDTO::getTercero, FacturasDTO::setTercero);
+        binder.forField(campoFecha).withConverter(
+            d -> d != null ? java.util.Date.from(d.atStartOfDay(ZoneId.systemDefault()).toInstant()) : null,
+            d -> d != null ? d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate() : null
+        ).bind(FacturasDTO::getFecha_factura, FacturasDTO::setFecha_factura);
+        binder.setBean(factura);
 
-        binderCabecera.setBean(factura);
-
-        FormLayout layoutCabecera = new FormLayout(campoNumero, campoFecha, comboTercero);
-
-       
-        List<Facturas_ItemsDTO> listaItemsRam = new ArrayList<>();
-      
-        if (factura.getItems() != null) {
-            listaItemsRam.addAll(factura.getItems());
-        }
-
+        // --- ÍTEMS (Cero Magia: Lista local temporal) ---
+        List<Facturas_ItemsDTO> listaItems = (factura.getItems() != null) ? new ArrayList<>(factura.getItems()) : new ArrayList<>();
         Grid<Facturas_ItemsDTO> grillaItems = new Grid<>(Facturas_ItemsDTO.class, false);
-        grillaItems.addColumn(Facturas_ItemsDTO::getDetalle).setHeader("Detalle").setFlexGrow(1);
-        grillaItems.addColumn(Facturas_ItemsDTO::getCantidad).setHeader("Cant.").setWidth("100px").setFlexGrow(0);
-        grillaItems.addColumn(Facturas_ItemsDTO::getMonto).setHeader("Precio Unit.").setWidth("150px").setFlexGrow(0);
-        // Columna calculada de subtotal
-        grillaItems.addColumn(item -> (item.getCantidad() != null && item.getMonto() != null) ? item.getCantidad() * item.getMonto() : 0.0)
-                   .setHeader("Subtotal").setWidth("150px").setFlexGrow(0);
+        grillaItems.addColumn(Facturas_ItemsDTO::getDetalle).setHeader("Detalle");
+        grillaItems.addColumn(Facturas_ItemsDTO::getCantidad).setHeader("Cant.");
+        grillaItems.addColumn(Facturas_ItemsDTO::getMonto).setHeader("Precio");
+        grillaItems.setItems(listaItems);
+        grillaItems.setHeight("200px");
 
-        grillaItems.setItems(listaItemsRam); 
-        grillaItems.setHeight("250px");
-
-        TextField inputDetalle = new TextField("Descripción");
-        inputDetalle.setWidthFull();
-        NumberField inputCantidad = new NumberField("Cant.");
-        inputCantidad.setWidth("100px");
-        NumberField inputMonto = new NumberField("Precio Unit.");
-        inputMonto.setWidth("150px");
-
-        Button btnAgregarItem = new Button("Añadir", VaadinIcon.PLUS.create());
-        btnAgregarItem.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_PRIMARY);
-        btnAgregarItem.addClickListener(e -> {
-            if (!inputDetalle.isEmpty() && !inputCantidad.isEmpty() && !inputMonto.isEmpty()) {
-                Facturas_ItemsDTO nuevoItem = new Facturas_ItemsDTO();
-                nuevoItem.setDetalle(inputDetalle.getValue());
-                nuevoItem.setCantidad(inputCantidad.getValue());
-                nuevoItem.setMonto(inputMonto.getValue());
-
-                listaItemsRam.add(nuevoItem); 
-                grillaItems.setItems(listaItemsRam);
-
-                inputDetalle.clear();
-                inputCantidad.clear();
-                inputMonto.clear();
-                inputDetalle.focus();
-            } else {
-                Notification.show("Complete todos los campos del ítem").addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
+        // Inputs para añadir
+        TextField inDetalle = new TextField("Detalle");
+        NumberField inCant = new NumberField("Cant.");
+        NumberField inPrecio = new NumberField("Precio");
+        Button btnAdd = new Button("Añadir", e -> {
+            Facturas_ItemsDTO item = new Facturas_ItemsDTO();
+            item.setDetalle(inDetalle.getValue());
+            item.setCantidad(inCant.getValue());
+            item.setMonto(inPrecio.getValue());
+            listaItems.add(item);
+            grillaItems.getDataProvider().refreshAll();
         });
-
-        HorizontalLayout layoutNuevoItem = new HorizontalLayout(inputDetalle, inputCantidad, inputMonto, btnAgregarItem);
-        layoutNuevoItem.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
-        layoutNuevoItem.setWidthFull();
-
 
         if (soloLectura) {
-            campoNumero.setReadOnly(true);
-            campoFecha.setReadOnly(true);
-            comboTercero.setReadOnly(true);
-            layoutNuevoItem.setVisible(false); 
+            campoNumero.setReadOnly(true); campoFecha.setReadOnly(true);
+            comboTercero.setReadOnly(true); btnAdd.setVisible(false);
         }
 
-        VerticalLayout cuerpoModal = new VerticalLayout();
-        cuerpoModal.add(
-            new H3("Datos Principales"), layoutCabecera, new Hr(), 
-            new H3("Detalle de Ítems"), layoutNuevoItem, grillaItems
-        );
-        modal.add(cuerpoModal);
+        modal.add(new VerticalLayout(new H3("Cabecera"), new FormLayout(campoNumero, campoFecha, comboTercero), 
+                                     new Hr(), new H3("Ítems"), new HorizontalLayout(inDetalle, inCant, inPrecio, btnAdd), grillaItems));
 
-        Button botonCerrar = new Button(soloLectura ? "Volver" : "Cancelar", e -> modal.close());
-        Button botonGuardar = new Button("Guardar Factura Completa", VaadinIcon.CHECK.create());
-        botonGuardar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        
-        botonGuardar.addClickListener(e -> {
-            if (binderCabecera.validate().isOk()) {
-                if (listaItemsRam.isEmpty()) {
-                    Notification.show("La factura debe tener al menos un ítem").addThemeVariants(NotificationVariant.LUMO_ERROR);
-                    return;
-                }
-                
-                factura.setItems(listaItemsRam);
-                
-                this.facturasService.crear(factura);
-                
-                actualizarGrillaPrincipal();
-                modal.close();
-                Notification.show("¡Factura emitida exitosamente!").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        Button btnGuardar = new Button("Guardar", e -> {
+            factura.setItems(listaItems);
+            
+            // --- LOGICA DE GUARDADO Y NOTIFICACIÓN ---
+            boolean esNueva = (factura.getId() == 0);
+            
+            if (esNueva) {
+                facturasService.crear(factura);
+            } else {
+                facturasService.actualizar(factura.getId(), factura);
             }
+            
+            actualizarGrillaPrincipal();
+            modal.close();
+            
+            // Evaluamos el mensaje dependiendo si se creó o se editó
+            String mensaje = esNueva ? "¡Factura creada exitosamente!" : "¡Factura editada correctamente!";
+            Notification.show(mensaje).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
         });
-
-        if (soloLectura) botonGuardar.setVisible(false);
-
-        modal.getFooter().add(botonCerrar, botonGuardar);
+        
+        if (soloLectura) btnGuardar.setVisible(false);
+        modal.getFooter().add(new Button("Cerrar", e -> modal.close()), btnGuardar);
         modal.open();
     }
 }

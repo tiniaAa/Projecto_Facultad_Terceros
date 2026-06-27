@@ -38,63 +38,29 @@ public class Facultad {
 	
 	@Column(name="DEFECTO")
 	private Boolean defecto;
-	
-	
-	
+
 	public Long getId() {
 		return id;
 	}
-	
+
 	public void setId(Long id) {
 		this.id = id;
 	}
-	
+
 	public String getNombre() {
 		return nombre;
 	}
-	
+
 	public void setNombre(String nombre) {
 		this.nombre = nombre;
 	}
-	
+
 	public String getDireccion() {
 		return direccion;
 	}
-	
+
 	public void setDireccion(String direccion) {
 		this.direccion = direccion;
-	}
-	
-	public Integer getSucursal() {
-		return sucursal;
-	}
-	
-	public void setSucursal(Integer sucursal) {
-		this.sucursal = sucursal;
-	}
-	
-	public String getTelefonos() {
-		return telefono;
-	}
-	
-	public void setTelefonos(String telefonos) {
-		this.telefono = telefonos;
-	}
-	
-	public String getCorreo() {
-		return email;
-	}
-	
-	public void setCorreo(String correo) {
-		this.email = correo;
-	}
-	
-	public Boolean getDefecto() {
-		return defecto;
-	}
-	
-	public void setDefecto(Boolean defecto) {
-		this.defecto = defecto;
 	}
 
 	public String getCuit() {
@@ -104,5 +70,40 @@ public class Facultad {
 	public void setCuit(String cuit) {
 		this.cuit = cuit;
 	}
+
+	public Integer getSucursal() {
+		return sucursal;
+	}
+
+	public void setSucursal(Integer sucursal) {
+		this.sucursal = sucursal;
+	}
+
+	public String getTelefono() {
+		return telefono;
+	}
+
+	public void setTelefono(String telefono) {
+		this.telefono = telefono;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public Boolean getDefecto() {
+		return defecto;
+	}
+
+	public void setDefecto(Boolean defecto) {
+		this.defecto = defecto;
+	}
+	
+	
+	
 	
 }

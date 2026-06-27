@@ -85,7 +85,9 @@ public class FacultadesView extends VerticalLayout {
                  try {
                     this.facultadService.eliminar(facultad.getId());
                     actualizarDatos();
-                    Notification.show("Facultad eliminada").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    // NOTIFICACIÓN DE ELIMINACIÓN EXITOSA
+                    Notification.show("Facultad eliminada correctamente")
+                                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                 } catch (Exception ex) {
                     Notification.show("No se puede eliminar. Revise si tiene registros asociados.")
                                 .addThemeVariants(NotificationVariant.LUMO_ERROR);
@@ -138,7 +140,9 @@ public class FacultadesView extends VerticalLayout {
         binder.forField(campoEmail).bind(FacultadDTO::getEmail, FacultadDTO::setEmail);
         binder.forField(campoSucursal).bind(FacultadDTO::getSucursal, FacultadDTO::setSucursal);
 
-        binder.setBean(facultad);
+        // ¡CERO MAGIA! Usamos readBean en lugar de setBean. Esto carga los datos en el formulario
+        // pero NO modifica el objeto 'facultad' hasta que validemos y guardemos explícitamente.
+        binder.readBean(facultad);
 
         if (soloLectura) {
             campoNombre.setReadOnly(true);
@@ -159,16 +163,30 @@ public class FacultadesView extends VerticalLayout {
         Button botonCancelar = new Button(textoBotonCerrar, e -> modal.close());
         
         Button botonGuardar = new Button("Guardar", e -> {
-            if (binder.validate().isOk()) {
-                if (facultad.getId() == null || facultad.getId() == 0) {
-                    this.facultadService.crear(facultad);
-                    Notification.show("¡Facultad creada!").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            try {
+                // writeBeanIfValid intenta pasar los datos de las cajas de texto al objeto Java.
+                // Si falta algo requerido, devuelve FALSE y no hace nada más.
+                if (binder.writeBeanIfValid(facultad)) {
+                    
+                    if (facultad.getId() == null || facultad.getId() == 0) {
+                        this.facultadService.crear(facultad);
+                        Notification.show("¡Facultad creada exitosamente!").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    } else {
+                        this.facultadService.actualizar(facultad.getId(), facultad);
+                        Notification.show("¡Facultad editada correctamente!").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    }
+                    
+                    actualizarDatos(); 
+                    modal.close();
                 } else {
-                    this.facultadService.actualizar(facultad.getId(), facultad);
-                    Notification.show("¡Facultad actualizada!").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    // Si la validación falla (ej. faltó el nombre), le avisamos visualmente
+                    Notification.show("Por favor, revise los errores en el formulario.")
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 }
-                actualizarDatos(); 
-                modal.close();
+            } catch (Exception ex) {
+                // Si el backend explota al actualizar, atrapamos el error para que la pantalla no se quede muda
+                Notification.show("Error en el servidor al guardar: " + ex.getMessage())
+                            .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
         botonGuardar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
